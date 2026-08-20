@@ -4,7 +4,7 @@ En udvidet databehandlingspipeline i Python, der overfører, transformerer og ge
 
 ---
 
-## 📌 Projektets Formål & Ændringer i Iteration 2
+## Projektets Formål & Ændringer i Iteration 2
 
 Projektet bygger videre på den oprindelige ELT-pipeline og tilføjer et stærkt sikkerhedslag for data at rest (*Data at Rest Encryption*):
 
@@ -20,7 +20,7 @@ Projektet bygger videre på den oprindelige ELT-pipeline og tilføjer et stærkt
 
 ---
 
-## 🛠️ Modulopdeling
+## Modulopdeling
 
 Pipelinens kodebase er modulær og opdelt i følgende Python-filer:
 
@@ -33,7 +33,7 @@ Pipelinens kodebase er modulær og opdelt i følgende Python-filer:
 
 ---
 
-## 🔐 Sikkerhed & Best Practices
+## Sikkerhed & Best Practices
 
 * **Secret Key Management:** Nøglen genereres automatisk i `secret.key`. Denne fil indeholder master-dekrypteringsnøglen og er tilføjet til `.gitignore`, så den aldrig uploades til GitHub.
 * **Command Injection Protection:** Dataindlæsningen sker som standard via Pythons `requests`-bibliotek i Pythons eget netværkslag for at undgå at tilgå operativsystemets shell.
@@ -57,7 +57,7 @@ For at køre projektet skal din maskine have følgende installeret:
 
 ```bash
 git clone https://github.com/Loxtech/Flora_ELT_Encryption.git
-cd flora-etl_Encryption
+cd Flora_ETL_Encryption
 ```
 
 ### 2. Opret og aktiver virtuelt miljø
