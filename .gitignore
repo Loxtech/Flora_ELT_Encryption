@@ -1,2 +1,9 @@
 .venv/
 __pycache__/
+
+# Følsomme nøgler og hemmeligheder
+secret.key
+*.key
+
+# Genererede output-filer (god praksis)
+Output_dir/
