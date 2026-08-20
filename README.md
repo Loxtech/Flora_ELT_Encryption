@@ -1,19 +1,43 @@
-# Flora ETL Pipeline
+# Flora ELT & Encryption Pipeline
 
-Dette projekt er en modulær ETL-pipeline (Extract, Transform, Load) opbygget i Python. Pipelinen henter Iris-datasættet, filtrerer og transformerer data for arten *Iris-setosa* ved hjælp af PySpark, gemmer resultaterne i en CSV-fil samt en MySQL-database, og genererer datavisualiseringer med Pandas og Seaborn.
+En udvidet databehandlingspipeline i Python, der overfører, transformerer og gemmer Iris-datasetmålinger sikkert ved hjælp af AES-symmetrisk kryptering (Fernet) for data at rest.
 
 ---
 
-## Projektstruktur
+## 📌 Projektets Formål & Ændringer i Iteration 2
 
-Projektet er opdelt i moduler efter ETL-principperne:
+Projektet bygger videre på den oprindelige ELT-pipeline og tilføjer et stærkt sikkerhedslag for data at rest (*Data at Rest Encryption*):
 
-* **`main.py`**: Hovedscriptet der styrer hele ETL-forløbet og afviklingen.
-* **`extract.py`**: Henter rådata (`iris.csv`) direkte fra GitHub via PySpark.
-* **`transform.py`**: Renser data, tilføjer kolonnenavne og filtrerer på `species == 'Iris-setosa'`.
-* **`load.py`**: Konverterer data og gemmer det i en ny CSV-fil samt i en MySQL-database.
-* **`visualize.py`**: Henter data fra MySQL og genererer grafer (Scatterplot, Histogram og Boxplots).
-* **`Output_dir/`**: Mappe hvor den transformerede CSV-fil og graferne gemmes.
+1. **Sikkerhed at Rest (AES / Fernet):** 
+   - Alle numeriske målinger og artsnavne krypteres inden lagring i både CSV og MySQL.
+   - Der anvendes **Fernet** (symmetrisk 128-bit AES med HMAC-SHA256 dataintegritetskontrol) via `cryptography`-biblioteket.
+2. **Database-koeksistens:** 
+   - Krypterede data gemmes i en separat database-tabel, `iris_setosa_encrypted`, så den eksisterende arv-tabel (`iris_setosa`) ikke overskrives.
+3. **Dekryptering ved Visualisering:** 
+   - Visualiseringsmodulet henter de krypterede data ud af MySQL, dekrypterer dem i memory og konverterer dem tilbage til numeriske typering (`float`) før graferne genereres.
+4. **Fleksibel Extractor:** 
+   - Udover den primære `requests`-baserede extractor indeholder modulet nu demonstrative metoder for `urllib`/`wget` og `subprocess/cURL`.
+
+---
+---
+
+## 🛠️ Modulopdeling
+
+Pipelinens kodebase er modulær og opdelt i følgende Python-filer:
+
+* **`main.py`**: Pipelinedirektør og orkestrering af de fire faser.
+* **`security.py`**: Håndterer generering/indlæsning af nøglen (`secret.key`) samt kryptering (`encrypt_val`) og dekryptering (`decrypt_val`).
+* **`extract.py`**: Henter rådata fra netværket. Indeholder `extract_data_requests` (foretrukket), `extract_data_wget` og `extract_data_subprocess`.
+* **`transform.py`**: Initialiserer PySpark, tilføjer skema-headers og filtrerer på `Iris-setosa`.
+* **`load.py`**: Konverterer PySpark DataFrames til Pandas (via `.collect()` for at undgå Py4J-konflikter), krypterer datasættet celleniveau-vis og gemmer til CSV og MySQL.
+* **`visualize.py`**: Henter krypterede data fra MySQL, kører dekryptering og typekonvertering samt genererer tre visuelle grafer.
+
+---
+
+## 🔐 Sikkerhed & Best Practices
+
+* **Secret Key Management:** Nøglen genereres automatisk i `secret.key`. Denne fil indeholder master-dekrypteringsnøglen og er tilføjet til `.gitignore`, så den aldrig uploades til GitHub.
+* **Command Injection Protection:** Dataindlæsningen sker som standard via Pythons `requests`-bibliotek i Pythons eget netværkslag for at undgå at tilgå operativsystemets shell.
 
 ---
 
@@ -33,8 +57,8 @@ For at køre projektet skal din maskine have følgende installeret:
 Åbn din terminal og klon projektet fra GitHub:
 
 ```bash
-git clone https://github.com/Loxtech/flora-etl.git
-cd flora-etl
+git clone https://github.com/Loxtech/Flora_ELT_Encryption.git
+cd flora-etl_Encryption
 ```
 
 ### 2. Opret og aktiver virtuelt miljø
@@ -42,14 +66,14 @@ Opret et isoleret Python-miljø og aktiver det:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source ../.venv/bin/activate
 ```
 
 ### 3. Installer afhængigheder
 Installer alle nødvendige Python-biblioteker:
 
 ```bash
-pip install pyspark pandas sqlalchemy pymysql matplotlib seaborn
+pip install pyspark pandas sqlalchemy pymysql requests cryptography matplotlib seaborn
 ```
 
 ### 4. Konfigurer og start MySQL
@@ -89,7 +113,9 @@ python3 main.py
 Når programmet har fuldført kørslen, vil følgende resultater være genereret:
 
 1. **CSV-fil**: `Output_dir/transformed_iris.csv` (indeholder kun målinger for *Iris-setosa*).
-2. **MySQL Database**: Databasen `flora_db` indeholdende tabellen `iris_setosa`.
+2. **MySQL Tabelle** iris_setosa_encrypted: **Databasetabel med det krypterede datasæt**`.
+3. secret.key : **Fernet-nøglen brugt til kryptering og dekryptering.**
+4. Output_dir/transformed_iris.csv: **En CSV-fil hvor alle felter fremstår som Base64-krypterede strenge.**
 3. **Grafiske visualiseringer**:
    * `Output_dir/scatter_plot.png` (Sepal Length vs Petal Length)
    * `Output_dir/histogram.png` (Fordeling af Petal Width)
