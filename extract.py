@@ -1,7 +1,7 @@
 import os
 import requests
 import subprocess
-import urllib.request
+import wget
 
 # Requests
 def extract_data_requests(data_url: str, input_dir: str, header_line: str) -> str:
@@ -27,12 +27,15 @@ def extract_data_requests(data_url: str, input_dir: str, header_line: str) -> st
 
     return filepath
 
-# wget (urllib.request).
+# wget (wget.download).
 def extract_data_wget(data_url: str, input_dir: str, header_line: str) -> str:
     """
     Sikkerhedsadvarsel:
-    - 'urllib' er indbygget i Python, men håndterer ikke streaming eller komplekse 
-      HTTPS-certifikater og retries lige så robust som 'requests'.
+    -Forældet og ikke veligeholdt
+    -Kan udgøre en sikkerhedsrisiko (Command Injection), hvis data_url eller parametre 
+      kommer fra ubetroede kilder og køres med shell=True.
+    -Afhænger af, at wget er installeret på værtsoperativsystemet (Linux/WSL).
+    -Kan ikke håndtere streamning af store filer, da wget.download() gemmer hele filen i RAM først.
     """
     os.makedirs(input_dir, exist_ok=True)
     filename = os.path.basename(data_url)
@@ -40,7 +43,7 @@ def extract_data_wget(data_url: str, input_dir: str, header_line: str) -> str:
 
     # Henter rådata til en midlertidig fil
     temp_filepath = os.path.join(input_dir, f"temp_{filename}")
-    urllib.request.urlretrieve(data_url, temp_filepath)
+    wget.download(data_url, temp_filepath, bar=None)
 
     # Indsæt header og sammensæt den endelige fil
     with open(temp_filepath, "r", encoding="utf-8") as src, open(filepath, "w", encoding="utf-8") as dst:
