@@ -19,7 +19,6 @@ Projektet bygger videre på den oprindelige ELT-pipeline og tilføjer et stærkt
    - Udover den primære `requests`-baserede extractor indeholder modulet nu demonstrative metoder for `urllib`/`wget` og `subprocess/cURL`.
 
 ---
----
 
 ## 🛠️ Modulopdeling
 
