@@ -1,27 +1,36 @@
 import os
 import pandas as pd
-from pyspark.sql import DataFrame
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
+import security
 
-def save_to_csv(df: DataFrame, original_filename: str, output_dir: str):
-    new_filename = f"transformed_{original_filename}"
-    output_path = os.path.join(output_dir, new_filename)
+def _encrypt_dataframe(pyspark_df) -> pd.DataFrame:
+    """Hjælpefunktion der konverterer PySpark DF til Pandas og krypterer alle felter."""
+    # Hent rækker med .collect() i stedet for .toPandas() for at undgå Py4J-fejl
+    data = [row.asDict() for row in pyspark_df.collect()]
+    pdf = pd.DataFrame(data)
     
-    pandas_df = pd.DataFrame(df.collect(), columns=df.columns)
-    pandas_df.to_csv(output_path, index=False)
-    print(f"-> Transformeret CSV gemt i: {output_path}")
-
-def save_to_mysql(df: DataFrame, db_config: dict, table_name: str):
-    base_uri = f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}"
-    engine = create_engine(base_uri)
+    key = security.get_or_create_key()
     
-    with engine.connect() as conn:
-        conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db_config['database']}"))
-        conn.commit()
+    encrypted_pdf = pdf.copy()
+    for col in encrypted_pdf.columns:
+        encrypted_pdf[col] = encrypted_pdf[col].apply(lambda x: security.encrypt_val(x, key))
         
-    db_uri = f"{base_uri}/{db_config['database']}"
-    db_engine = create_engine(db_uri)
+    return encrypted_pdf
+
+def save_to_csv(pyspark_df, filename: str, output_dir: str):
+    """Krypterer data og gemmer som CSV-fil."""
+    encrypted_pdf = _encrypt_dataframe(pyspark_df)
     
-    pandas_df = pd.DataFrame(df.collect(), columns=df.columns)
-    pandas_df.to_sql(name=table_name, con=db_engine, if_exists='replace', index=False)
-    print(f"-> Data gemt i MySQL-tabellen '{table_name}'")
+    output_filepath = os.path.join(output_dir, f"transformed_{filename}")
+    encrypted_pdf.to_csv(output_filepath, index=False)
+    print(f"[LOAD] Krypteret data gemt i CSV: {output_filepath}")
+
+def save_to_mysql(pyspark_df, db_config: dict, table_name: str = "iris_setosa_encrypted"):
+    """Krypterer data og gemmer i MySQL-databasen."""
+    encrypted_pdf = _encrypt_dataframe(pyspark_df)
+    
+    db_uri = f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}"
+    engine = create_engine(db_uri)
+    
+    encrypted_pdf.to_sql(table_name, con=engine, if_exists='replace', index=False)
+    print(f"[LOAD] Krypteret data gemt i MySQL tabellen: '{table_name}'")
